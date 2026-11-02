@@ -1,12 +1,41 @@
-# INF-8239 · Unidad 01 · Ejercicio 01 (LAB01 + LAB02)
+# INF-8239 · Unidad 01 · Ejercicios 01 y 02 (LAB00–LAB03)
 
-Curso: Ciencia de Datos II (INF-8239) · Profesor: Edwin Ramón José Nolasco
+Curso: Ciencia de Datos II (INF-8239) · Profesor: Edwin Ramón José Nolasco · Código: U01.E01 / U01.E02
 
-Proyecto de los laboratorios guiados 00–03 de la Unidad 01. Este README documenta el **Ejercicio 01**
-(entrega que integra LAB01 y LAB02). Los laboratorios 01 y 02 se resuelven en este mismo proyecto,
-porque LAB03 reutiliza el dataset, el target y las exclusiones del LAB02.
+| Entrega | Repositorio |
+|---|---|
+| **Ejercicio 01** (LAB01 + LAB02): dataset público y SVM reproducible | https://github.com/edvvdev/unidad01-01 |
+| **Ejercicio 02** (LAB03): ensambles, reducción dimensional y Green AI | https://github.com/edvvdev/unidad01-02 |
 
-## Instalación (Windows, PowerShell)
+Proyecto de los laboratorios guiados 00–03 de la Unidad 01. Los tres laboratorios se resuelven en
+este mismo proyecto, porque el LAB03 reutiliza el dataset, el target, las exclusiones y la
+partición aprobados en el LAB02.
+
+## Instalación
+
+Hay dos caminos equivalentes. El primero usa **uv** (recomendado: bloquea las versiones exactas en
+`uv.lock`); el segundo es el que describe el manual de la Unidad 01 (`venv` + `requirements.txt`) y
+se mantiene porque el mandato exige que el repositorio incluya `requirements.txt`.
+
+**Con uv (Windows, PowerShell)**
+
+```powershell
+cd C:\Proyectos\INF8239_U01
+uv python install 3.12
+uv sync
+uv run pytest -q                                    # 21 passed
+```
+
+**Con uv (macOS/Linux)**
+
+```bash
+cd ~/Proyectos/INF8239_U01
+uv python install 3.12
+uv sync
+uv run pytest -q                                    # 21 passed
+```
+
+**Con venv + requirements.txt (el procedimiento del manual)**
 
 ```powershell
 cd C:\Proyectos\INF8239_U01
@@ -14,30 +43,51 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt      # jupyter y reportlab
 $env:PYTHONPATH="src"
-python -m pytest -q
+python -m pytest -q                                # 21 passed
 ```
 
-Resultado esperado: `21 passed`. Para ejecutar los notebooks se necesita además el kernel de Jupyter:
+En macOS/Linux: `python3 -m venv .venv` y `source .venv/bin/activate`.
+
+## Ejecución de los dos ejercicios
+
+Un script hace todo el flujo: descarga el dataset, corre las pruebas, ejecuta los notebooks de
+principio a fin (con sus salidas guardadas), regenera los PDF y al final imprime las cifras para
+compararlas con la documentación.
 
 ```powershell
-python -m pip install -r requirements-dev.txt
-python -m jupyter nbconvert --to notebook --execute --inplace notebooks/01_svm_guiada.ipynb
-python -m jupyter nbconvert --to notebook --execute --inplace notebooks/02_dataset_svm.ipynb
-python -m jupyter nbconvert --to notebook --execute --inplace notebooks/03_ensembles_green_ai.ipynb
+.\scripts\run_all.ps1        # Windows
+```
+```bash
+./scripts/run_all.sh         # macOS / Linux
 ```
 
-> El notebook del Ejercicio 02 ajusta **ocho modelos tres veces cada uno**: tarda entre 10 y 15 minutos
-> en CPU. Para regenerar solo la figura del Pareto a partir del CSV ya calculado, basta con volver a
-> ejecutar esa celda.
+| Opción | Efecto |
+|---|---|
+| `SKIP_EJ02=1 ./scripts/run_all.sh` | Omite el notebook del LAB03 (ahorra 10–15 min) |
+| `REPO_URL=... ./scripts/run_all.sh` | URL que se imprime en la portada del PDF |
 
-Los PDF breves de las dos entregas se regeneran con `python scripts/build_ejercicio01_pdf.py` y
-`python scripts/build_ejercicio02_pdf.py` (requieren `reportlab`, incluido en `requirements-dev.txt`).
+Si prefieres ejecutar paso a paso:
+
+```bash
+uv run python -m pytest -q
+uv run python -m jupyter nbconvert --to notebook --execute --inplace notebooks/00_verificacion.ipynb
+uv run python -m jupyter nbconvert --to notebook --execute --inplace notebooks/01_svm_guiada.ipynb
+uv run python -m jupyter nbconvert --to notebook --execute --inplace notebooks/02_dataset_svm.ipynb
+uv run python -m jupyter nbconvert --to notebook --execute --inplace notebooks/03_ensembles_green_ai.ipynb
+uv run python scripts/build_ejercicio01_pdf.py
+uv run python scripts/build_ejercicio02_pdf.py
+```
+
+Tiempos orientativos en CPU: LAB01 ~30 s, LAB02 ~7 min (el SVM ajusta 39.073 filas), LAB03 10–15 min
+(ocho modelos ajustados tres veces cada uno). Las **métricas se reproducen exactamente**; los
+**tiempos y tamaños varían** con el hardware, y por eso se reportan como mediana de tres repeticiones.
 
 ## Descarga reproducible de los datos
 
-Ninguno de los dos datasets requiere cuenta ni ruta personal: la descarga la hace un script que
-valida la URL y registra el SHA-256 de los bytes obtenidos.
+Ninguno de los datasets requiere cuenta ni ruta personal: la descarga la hace un script que valida
+la URL y registra el SHA-256 de los bytes obtenidos.
 
 ```python
 from inf8239_u01.data import download_dataset
@@ -66,20 +116,22 @@ INF8239_U01/
 │   └── EJERCICIO_02_PDF_BRIEF.pdf
 ├── models/                  pipelines serializados (no versionados: *.joblib)
 ├── notebooks/
-│   ├── 00_verificacion.ipynb      LAB00 · verificación del entorno
-│   ├── 01_svm_guiada.ipynb        LAB01 · SVM con pipeline, GridSearchCV y evaluación
-│   ├── 02_dataset_svm.ipynb       LAB02 · dataset público, auditoría y pipeline completo
+│   ├── 00_verificacion.ipynb       LAB00 · verificación del entorno
+│   ├── 01_svm_guiada.ipynb         LAB01 · SVM con pipeline, GridSearchCV y evaluación
+│   ├── 02_dataset_svm.ipynb        LAB02 · dataset público, auditoría y pipeline completo
 │   └── 03_ensembles_green_ai.ipynb LAB03 · catálogo, PCA, t-SNE y frontera de Pareto
 ├── reports/                     métricas, tablas y figuras generadas
-├── scripts/                    generadores de los PDF breves de entrega
+├── scripts/                    run_all.sh · run_all.ps1 · generadores de los PDF
 ├── src/inf8239_u01/
 │   ├── data.py               carga, auditoría y descarga reproducible
 │   ├── models.py             build_svm, build_baseline, ColumnTransformer, build_svm_pipeline
 │   ├── evaluation.py         partición, métricas, matrices de confusión y figuras
 │   └── green.py              catálogo de configuraciones, medición repetida y frontera de Pareto
 ├── tests/                    test_environment.py · test_models.py · test_data_contract.py · test_green.py
-├── requirements.txt
-├── requirements-dev.txt
+├── pyproject.toml            proyecto para uv (mismas dependencias que requirements.txt)
+├── uv.lock                   versiones exactas del entorno
+├── requirements.txt          dependencias (procedimiento del manual)
+├── requirements-dev.txt      jupyter y reportlab
 └── AI_USE_DECLARATION.md
 ```
 
@@ -89,19 +141,7 @@ INF8239_U01/
 |---|---|---|---|---|
 | LAB01 | Breast Cancer Wisconsin (diagnóstico) | `target`: 0 maligno · 1 benigno | F1 macro (media de las clases) | Falso negativo: maligno clasificado como benigno |
 | LAB02 | UCI Adult (Census Income) | `income`: `<=50K` / `>50K` | F1 macro | Falso negativo: califica y no se detecta (posible denegación de crédito) |
-
-## Ejecución
-
-```bash
-# LAB01
-uv run python scripts/...   # o abrir notebooks/01_svm_guiada.ipynb y ejecutar todas las celdas
-python -m pytest tests/test_models.py -q
-
-# LAB02
-python -m pytest tests/test_data_contract.py -q
-```
-
-Comandos equivalents para los notebooks: `python -m jupyter nbconvert --to notebook --execute --inplace notebooks/01_svm_guiada.ipynb` y el mismo para `02_dataset_svm.ipynb`.
+| LAB03 | UCI Adult (Census Income) | `income`: `<=50K` / `>50K` | F1 macro | Igual que LAB02, con el recall como criterio de desempate |
 
 ## Resultados de referencia (2026-11-02)
 
@@ -126,14 +166,7 @@ Prueba: 9.769 casos; 901 falsos negativos y 478 falsos positivos. La búsqueda d
 hizo sobre una submuestra estratificada del 25 % del entrenamiento (un ajuste completo del SVM sobre
 39.073 filas tarda ~30 s) y el mejor modelo se reajustó sobre todo el entrenamiento.
 
-
-## Ejercicio 02 · LAB03 (ensambles, reducción dimensional y Green AI)
-
-### Qué se comparó
-
-Ocho configuraciones homogéneas sobre el **mismo dataset, target y partición** del Ejercicio 01
-(Adult / Census Income, UCI, CC BY 4.0; target `income`; partición estratificada 80/20 con semilla
-42; 9.769 casos de prueba), con el mismo preprocesamiento dentro del pipeline:
+**LAB03** (`reports/green_ai_results.csv`, `reports/green_ai_decision.json`):
 
 | Configuración | Familia | F1 macro | Accuracy | Ajuste (s) | Inferencia (ms) | Tamaño (KB) | Pareto |
 |---|---|---|---|---|---|---|---|
@@ -147,36 +180,23 @@ Ocho configuraciones homogéneas sobre el **mismo dataset, target y partición**
 | `logreg_pca` | Regresión logística + PCA | 0,7749 | 0,8485 | 0,58 | 20,1 | 14 | no |
 
 Tiempos y tamaños: **mediana de 3 repeticiones** de ajuste y de inferencia, y tamaño del pipeline
-serializado. Fuente: `reports/green_ai_results.csv` y `reports/green_ai_decision.json`.
+serializado.
 
-### Decisión cuantificada
+**Decisión cuantificada (LAB03).** Se entrega **`boost`**: F1 macro 0,8185 (la máxima del catálogo,
+diferencia absoluta 0,00 frente a la mejor), 0,56 s de ajuste, 360 KB de modelo y 24,4 ms de
+inferencia. Frente a la otra configuración no dominada (`rf_100`, 0,7823) gana 0,0363 de F1 macro con
+0,18 s más de ajuste y **98,4 MB menos de modelo**. El SVM infiere **214 veces más lento** que el
+boosting (5.228 s frente a 24,4 ms) y el Random Forest de 300 árboles ocupa 296,9 MB para peor
+desempeño. El PCA reduce el costo del SVM (31,3 s y 2,3 MB frente a 43,9 s y 6,0 MB) pero resta
+0,0038 de F1 macro: el 90 % de varianza que retiene no incluye la señal de los ingresos altos.
 
-Se entrega **`boost`**: F1 macro 0,8185 (la máxima del catálogo, diferencia absoluta 0,00 frente a la
-mejor), 0,56 s de ajuste, 360 KB de modelo y 24,4 ms de inferencia. Frente a la otra configuración no
-dominada (`rf_100`, 0,7823) gana 0,0363 de F1 macro con 0,18 s más de ajuste y **98,4 MB menos de
-modelo**. El SVM infiere **214 veces más lento** que el boosting (5.228 s frente a 24,4 ms) y el
-Random Forest de 300 árboles ocupa 296,9 MB para peor desempeño. El PCA reduce el costo del SVM
-(31,3 s y 2,3 MB frente a 43,9 s y 6,0 MB) pero resta 0,0038 de F1 macro.
-
-### Evidencia de reducción dimensional
+### Evidencia de reducción dimensional (LAB03)
 
 | Figura | Archivo | Qué muestra |
 |---|---|---|
 | PCA: espectro y proyección 2D | `reports/pca_analysis.png` | ~18 componentes para el 90 % de la varianza; la proyección 2D separa solo parcialmente las clases |
 | t-SNE con dos semillas | `reports/tsne_two_seeds.png` | Semillas 42 y 7 sobre 6.000 casos de prueba: la estructura de agrupamientos permanece, las coordenadas cambian |
 | Frontera de Pareto | `reports/pareto.png` | F1 macro frente a tiempo de ajuste y frente a tamaño del modelo (escala logarítmica) |
-
-### Limitaciones
-
-- El tiempo de ajuste y el tamaño del modelo son **proxies contextuales de costo, no consumo
-  energético**: las cifras solo valen en el hardware registrado en `reports/green_ai_decision.json`
-  (Python 3.12.15, scikit-learn 1.9.1, x86_64, Linux).
-- El preprocesamiento es denso porque el boosting y el PCA no admiten entradas dispersas: 48.842 × 58
-  columnas float64 ≈ 21 MB, y el PCA con 20 componentes no conserva la señal de los ingresos altos.
-- t-SNE se aplica a una submuestra estratificada de 6.000 casos por costo computacional; una
-  separación visual no demuestra causalidad ni que el modelo use esa geometría.
-- El recall de `>50K` sigue en 0,66 en todas las configuraciones: el problema es de datos, no de
-  modelo.
 
 ## Documentos de la entrega
 
@@ -189,7 +209,7 @@ Random Forest de 300 árboles ocupa 296,9 MB para peor desempeño. El PCA reduce
 | `reports/green_ai_results.csv` · `reports/green_ai_decision.json` | Catálogo completo, tiempos, tamaños y decisión del LAB03 |
 | `reports/pca_analysis.png` · `reports/tsne_two_seeds.png` · `reports/pareto.png` | Figuras de reducción dimensional y frontera de Pareto |
 | `reports/svm_cv_results.csv` · `reports/dataset_svm_cv_results.csv` | Tablas de la búsqueda de hiperparámetros |
-| `reports/*_confusion_matrix.png` · `reports/*_cv_results.png` | Figuras |
+| `reports/*_confusion_matrix.png` · `reports/*_cv_results.png` | Figuras de los LAB01 y LAB02 |
 | `reports/dataset_svm_errors.csv` | 20 errores con categoría, muestra aleatoria con semilla 42 |
 | `AI_USE_DECLARATION.md` | Uso honesto del asistente de IA y verificaciones pendientes del estudiante |
 
@@ -202,5 +222,15 @@ Random Forest de 300 árboles ocupa 296,9 MB para peor desempeño. El PCA reduce
   misma limitación.
 - Los resultados de LAB02 y LAB03 corresponden a un censo de 1994–1996 de la población activa
   estadounidense: no son extrapolables y no autorizan decisiones sobre personas.
+- El tiempo de ajuste y el tamaño del modelo son **proxies contextuales de costo, no consumo
+  energético**: las cifras solo valen en el hardware registrado en `reports/green_ai_decision.json`
+  (Python 3.12.15, scikit-learn 1.9.1, x86_64, Linux).
+- El preprocesamiento del LAB03 es denso porque el boosting y el PCA no admiten entradas dispersas:
+  48.842 × 58 columnas float64 ≈ 21 MB, y el PCA con 20 componentes no conserva la señal de los
+  ingresos altos.
+- t-SNE se aplica a una submuestra estratificada de 6.000 casos por costo computacional; una
+  separación visual no demuestra causalidad ni que el modelo use esa geometría.
+- El recall de `>50K` sigue en 0,66 en todas las configuraciones del LAB03: el problema es de datos,
+  no de modelo.
 - Los modelos serializados de `models/` (hasta 296,9 MB el de Random Forest con 300 árboles) no se
   versionan: se regeneran ejecutando el notebook.

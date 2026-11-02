@@ -1,53 +1,66 @@
 #!/usr/bin/env bash
-# Ejecuta todo el flujo de la Unidad 01 (Ejercicio 01 y Ejercicio 02) en Linux/macOS.
-# Uso:
+# Ejecuta todo el flujo de la Unidad 01 (Ejercicios 01 y 02) en Linux/macOS.
+#
+# Usa uv si está disponible; si no, recurre al entorno virtual con venv + requirements.txt
+# (el procedimiento que describe el manual de la Unidad 01).
+#
 #   ./scripts/run_all.sh              # todo (incluye el notebook lento del LAB03)
 #   SKIP_EJ02=1 ./scripts/run_all.sh  # omite notebooks/03_ensembles_green_ai.ipynb
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
-PY=".venv/bin/python"
 
-if [ ! -x "$PY" ]; then
-  echo "No existe el entorno .venv. Créalo con:" >&2
-  echo "  uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -r requirements.txt -r requirements-dev.txt" >&2
-  exit 1
+if command -v uv >/dev/null 2>&1; then
+  echo "==> Entorno: uv (uv sync)"
+  uv sync
+  RUN=(uv run)
+  export REPO_URL="${REPO_URL:-https://github.com/edvvdev/unidad01-02}"
+else
+  PY=".venv/bin/python"
+  if [ ! -x "$PY" ]; then
+    echo "No hay uv ni entorno .venv. Elige una de estas dos opciones:" >&2
+    echo "  a) uv sync                      (recomendado)" >&2
+    echo "  b) python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-dev.txt" >&2
+    exit 1
+  fi
+  echo "==> Entorno: .venv (venv + requirements.txt)"
+  export PYTHONPATH="src"
+  RUN=("$PY")
+  export REPO_URL="${REPO_URL:-https://github.com/edvvdev/unidad01-02}"
 fi
 
-export PYTHONPATH="src"
-
 echo "==> 1/5. Dataset (se descarga una vez; el notebook también lo hace solo)"
-$PY - <<'CODE'
+"${RUN[@]}" - <<'CODE'
 from inf8239_u01.data import download_dataset
 print("adult:", download_dataset("adult", "data/raw"))
 print("bank (candidato alterno):", download_dataset("bank", "data/raw"))
 CODE
 
 echo "==> 2/5. Pruebas (esperado: 21 passed)"
-$PY -m pytest -q
+"${RUN[@]}" -m pytest -q
 
 echo "==> 3/5. Notebooks"
-$PY -m jupyter nbconvert --to notebook --execute --inplace \
+"${RUN[@]}" -m jupyter nbconvert --to notebook --execute --inplace \
   --ExecutePreprocessor.timeout=3600 notebooks/00_verificacion.ipynb
-$PY -m jupyter nbconvert --to notebook --execute --inplace \
+"${RUN[@]}" -m jupyter nbconvert --to notebook --execute --inplace \
   --ExecutePreprocessor.timeout=3600 notebooks/01_svm_guiada.ipynb
-$PY -m jupyter nbconvert --to notebook --execute --inplace \
+"${RUN[@]}" -m jupyter nbconvert --to notebook --execute --inplace \
   --ExecutePreprocessor.timeout=3600 notebooks/02_dataset_svm.ipynb
 if [ "${SKIP_EJ02:-0}" != "1" ]; then
   echo "    (LAB03: 8 modelos x 3 repeticiones; 10-15 min en CPU)"
-  $PY -m jupyter nbconvert --to notebook --execute --inplace \
+  "${RUN[@]}" -m jupyter nbconvert --to notebook --execute --inplace \
     --ExecutePreprocessor.timeout=3600 notebooks/03_ensembles_green_ai.ipynb
 else
   echo "    OMITIDO por SKIP_EJ02=1"
 fi
 
 echo "==> 4/5. PDF breves de entrega"
-$PY scripts/build_ejercicio01_pdf.py
-$PY scripts/build_ejercicio02_pdf.py
+"${RUN[@]}" python scripts/build_ejercicio01_pdf.py
+"${RUN[@]}" python scripts/build_ejercicio02_pdf.py
 
 echo "==> 5/5. Resumen de cifras generadas"
-$PY - <<'CODE'
+"${RUN[@]}" - <<'CODE'
 import json
 from pathlib import Path
 

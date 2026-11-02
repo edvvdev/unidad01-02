@@ -1,40 +1,54 @@
-# Ejecuta todo el flujo de la Unidad 01 (Ejercicio 01 y Ejercicio 02) en Windows / PowerShell.
-# Uso:
-#   .\scripts\run_all.ps1              # todo (incluye el notebook lento del LAB03)
-#   $env:SKIP_EJ02="1"; .\scripts\run_all.ps1   # omite notebooks\03_ensembles_green_ai.ipynb
+# Ejecuta todo el flujo de la Unidad 01 (Ejercicios 01 y 02) en Windows / PowerShell.
+#
+# Usa uv si está disponible; si no, recurre al entorno virtual con venv + requirements.txt
+# (el procedimiento que describe el manual de la Unidad 01).
+#
+#   .\scripts\run_all.ps1                      # todo (incluye el notebook lento del LAB03)
+#   $env:SKIP_EJ02="1"; .\scripts\run_all.ps1  # omite notebooks\03_ensembles_green_ai.ipynb
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
-$env:PYTHONPATH = "src"
 
-if (-not (Test-Path ".venv\Scripts\python.exe")) {
-    Write-Error "No existe el entorno .venv. Créalo con:`n  python -m venv .venv`n  .venv\Scripts\Activate.ps1`n  python -m pip install -r requirements.txt -r requirements-dev.txt"
+$uv = Get-Command uv -ErrorAction SilentlyContinue
+if ($uv) {
+    Write-Host "==> Entorno: uv (uv sync)" -ForegroundColor Cyan
+    uv sync
+    $Run = @("uv", "run")
+    if (-not $env:REPO_URL) { $env:REPO_URL = "https://github.com/edvvdev/unidad01-02" }
+} else {
+    if (-not (Test-Path ".venv\Scripts\python.exe")) {
+        Write-Error "No hay uv ni entorno .venv. Elige una de estas dos opciones:`n  a) uv sync`n  b) python -m venv .venv; .venv\Scripts\Activate.ps1; python -m pip install -r requirements.txt -r requirements-dev.txt"
+    }
+    Write-Host "==> Entorno: .venv (venv + requirements.txt)" -ForegroundColor Cyan
+    $env:PYTHONPATH = "src"
+    $Run = @("python")
+    if (-not $env:REPO_URL) { $env:REPO_URL = "https://github.com/edvvdev/unidad01-02" }
 }
 
 Write-Host "==> 1/5. Dataset (se descarga una vez; el notebook también lo hace solo)" -ForegroundColor Cyan
-python -c "from inf8239_u01.data import download_dataset; print('adult:', download_dataset('adult', 'data/raw')); print('bank (candidato alterno):', download_dataset('bank', 'data/raw'))"
+& $Run[0] $Run[1..($Run.Length - 1)] -c "from inf8239_u01.data import download_dataset; print('adult:', download_dataset('adult', 'data/raw')); print('bank (candidato alterno):', download_dataset('bank', 'data/raw'))"
 
 Write-Host "==> 2/5. Pruebas (esperado: 21 passed)" -ForegroundColor Cyan
-python -m pytest -q
+& $Run[0] $Run[1..($Run.Length - 1)] -m pytest -q
 
 Write-Host "==> 3/5. Notebooks" -ForegroundColor Cyan
 foreach ($nb in @("00_verificacion.ipynb", "01_svm_guiada.ipynb", "02_dataset_svm.ipynb")) {
-    python -m jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=3600 "notebooks\$nb"
+    & $Run[0] $Run[1..($Run.Length - 1)] -m jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=3600 "notebooks\$nb"
 }
 if ($env:SKIP_EJ02 -ne "1") {
     Write-Host "    (LAB03: 8 modelos x 3 repeticiones; 10-15 min en CPU)" -ForegroundColor DarkGray
-    python -m jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=3600 "notebooks\03_ensembles_green_ai.ipynb"
+    & $Run[0] $Run[1..($Run.Length - 1)] -m jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.timeout=3600 "notebooks\03_ensembles_green_ai.ipynb"
 } else {
     Write-Host "    OMITIDO por SKIP_EJ02=1" -ForegroundColor DarkGray
 }
 
 Write-Host "==> 4/5. PDF breves de entrega" -ForegroundColor Cyan
-python scripts\build_ejercicio01_pdf.py
-python scripts\build_ejercicio02_pdf.py
+& $Run[0] $Run[1..($Run.Length - 1)] scripts\build_ejercicio01_pdf.py
+& $Run[0] $Run[1..($Run.Length - 1)] scripts\build_ejercicio02_pdf.py
 
 Write-Host "==> 5/5. Resumen de cifras generadas" -ForegroundColor Cyan
-python -c @"
+& $Run[0] $Run[1..($Run.Length - 1)] -c @"
 import json
 from pathlib import Path
 reports = Path('reports')
