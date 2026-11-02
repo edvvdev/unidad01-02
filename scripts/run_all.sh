@@ -15,7 +15,8 @@ if command -v uv >/dev/null 2>&1; then
   echo "==> Entorno: uv (uv sync)"
   uv sync
   RUN=(uv run)
-  export REPO_URL="${REPO_URL:-https://github.com/edvvdev/unidad01-02}"
+  export REPO_URL_E01="${REPO_URL_E01:-https://github.com/edvvdev/unidad01-01}"
+  export REPO_URL_E02="${REPO_URL_E02:-https://github.com/edvvdev/unidad01-02}"
 else
   PY=".venv/bin/python"
   if [ ! -x "$PY" ]; then
@@ -27,7 +28,8 @@ else
   echo "==> Entorno: .venv (venv + requirements.txt)"
   export PYTHONPATH="src"
   RUN=("$PY")
-  export REPO_URL="${REPO_URL:-https://github.com/edvvdev/unidad01-02}"
+  export REPO_URL_E01="${REPO_URL_E01:-https://github.com/edvvdev/unidad01-01}"
+  export REPO_URL_E02="${REPO_URL_E02:-https://github.com/edvvdev/unidad01-02}"
 fi
 
 echo "==> 1/5. Dataset (se descarga una vez; el notebook también lo hace solo)"
@@ -56,8 +58,8 @@ else
 fi
 
 echo "==> 4/5. PDF breves de entrega"
-"${RUN[@]}" python scripts/build_ejercicio01_pdf.py
-"${RUN[@]}" python scripts/build_ejercicio02_pdf.py
+REPO_URL="$REPO_URL_E01" "${RUN[@]}" python scripts/build_ejercicio01_pdf.py
+REPO_URL="$REPO_URL_E02" "${RUN[@]}" python scripts/build_ejercicio02_pdf.py
 
 echo "==> 5/5. Resumen de cifras generadas"
 "${RUN[@]}" - <<'CODE'

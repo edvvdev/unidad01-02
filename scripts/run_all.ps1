@@ -15,7 +15,8 @@ if ($uv) {
     Write-Host "==> Entorno: uv (uv sync)" -ForegroundColor Cyan
     uv sync
     $Run = @("uv", "run")
-    if (-not $env:REPO_URL) { $env:REPO_URL = "https://github.com/edvvdev/unidad01-02" }
+    if (-not $env:REPO_URL_E01) { $env:REPO_URL_E01 = "https://github.com/edvvdev/unidad01-01" }
+    if (-not $env:REPO_URL_E02) { $env:REPO_URL_E02 = "https://github.com/edvvdev/unidad01-02" }
 } else {
     if (-not (Test-Path ".venv\Scripts\python.exe")) {
         Write-Error "No hay uv ni entorno .venv. Elige una de estas dos opciones:`n  a) uv sync`n  b) python -m venv .venv; .venv\Scripts\Activate.ps1; python -m pip install -r requirements.txt -r requirements-dev.txt"
@@ -23,7 +24,8 @@ if ($uv) {
     Write-Host "==> Entorno: .venv (venv + requirements.txt)" -ForegroundColor Cyan
     $env:PYTHONPATH = "src"
     $Run = @("python")
-    if (-not $env:REPO_URL) { $env:REPO_URL = "https://github.com/edvvdev/unidad01-02" }
+    if (-not $env:REPO_URL_E01) { $env:REPO_URL_E01 = "https://github.com/edvvdev/unidad01-01" }
+    if (-not $env:REPO_URL_E02) { $env:REPO_URL_E02 = "https://github.com/edvvdev/unidad01-02" }
 }
 
 Write-Host "==> 1/5. Dataset (se descarga una vez; el notebook también lo hace solo)" -ForegroundColor Cyan
@@ -44,7 +46,9 @@ if ($env:SKIP_EJ02 -ne "1") {
 }
 
 Write-Host "==> 4/5. PDF breves de entrega" -ForegroundColor Cyan
+$env:REPO_URL = $env:REPO_URL_E01
 & $Run[0] $Run[1..($Run.Length - 1)] scripts\build_ejercicio01_pdf.py
+$env:REPO_URL = $env:REPO_URL_E02
 & $Run[0] $Run[1..($Run.Length - 1)] scripts\build_ejercicio02_pdf.py
 
 Write-Host "==> 5/5. Resumen de cifras generadas" -ForegroundColor Cyan
