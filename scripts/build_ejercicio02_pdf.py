@@ -48,7 +48,7 @@ story.append(Paragraph(
 story.append(Spacer(1, 6))
 
 identificacion = [
-        ["Estudiante", "Edwing Perez · matrícula: PENDIENTE"],
+        ["Estudiante", "Edwing Perez"],
         ["Profesor", "Edwin Ramón José Nolasco"],
     ["Repositorio", REPO_URL or "PENDIENTE: enlace de GitHub (publicar antes de entregar)"],
     ["Dataset (Ejercicio 01)", "Adult (Census Income) · UCI · CC BY 4.0"],
