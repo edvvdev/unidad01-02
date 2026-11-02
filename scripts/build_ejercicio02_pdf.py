@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 
@@ -12,6 +13,10 @@ from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.platypus import Image, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+#: URL del repositorio donde se publica esta entrega (se puede sobrescribir con la variable
+#: de entorno REPO_URL al regenerar el PDF).
+REPO_URL = os.getenv("REPO_URL", "")
 
 ROOT = Path("/home/trek/source/uasd/cienciadedatos/tareas/Unidad_1/INF8239_U01")
 REPORTS = ROOT / "reports"
@@ -46,7 +51,7 @@ identificacion = [
     ["Estudiante", "PENDIENTE: nombre completo y matrícula"],
     ["Correo institucional", "PENDIENTE: ID+USUARIO@users.noreply.github.com"],
     ["Profesor", "Edwin Ramón José Nolasco"],
-    ["Repositorio", "PENDIENTE: enlace de GitHub (publicar antes de entregar)"],
+    ["Repositorio", REPO_URL or "PENDIENTE: enlace de GitHub (publicar antes de entregar)"],
     ["Dataset (Ejercicio 01)", "Adult (Census Income) · UCI · CC BY 4.0"],
     ["Fecha de ejecución", "2026-11-02"],
 ]
