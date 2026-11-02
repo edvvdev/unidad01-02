@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from reportlab.lib import colors
@@ -20,6 +21,11 @@ adult = json.loads((REPORTS / "dataset_svm_metrics.json").read_text(encoding="ut
 conclusion = (ROOT / "docs/CONCLUSION_EJERCICIO_01.md").read_text(encoding="utf-8")
 conclusion_body = conclusion.split("**Qué se construyó.**", 1)[1]
 conclusion_body = "**Qué se construyó.**" + conclusion_body.split("**Pendiente crítico:**", 1)[0]
+
+
+def negritas(texto: str) -> str:
+    """Convierte **negrita** de Markdown en <b>...</b> para reportlab."""
+    return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", texto)
 
 styles = getSampleStyleSheet()
 styles.add(ParagraphStyle(name="Title2", parent=styles["Title"], fontSize=17, spaceAfter=6))
