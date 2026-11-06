@@ -10,10 +10,12 @@ Reglas del protocolo congelado del Ejercicio 01:
 from __future__ import annotations
 
 import pickle
+import platform
 from time import perf_counter
 
 import numpy as np
 import pandas as pd
+import sklearn
 from sklearn.compose import ColumnTransformer
 from sklearn.decomposition import PCA
 from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
@@ -117,7 +119,7 @@ def fit_and_measure(name: str, features_train: pd.DataFrame, target_train: pd.Se
     def predict_once() -> None:
         pipeline.predict(features_test)
 
-    predict_seconds, predict_runs = median_time(predict_once, repetitions)
+    predict_seconds, _ = median_time(predict_once, repetitions)
     return {
         "configuracion": name,
         "familia": CATALOGUE[name]["family"],
@@ -152,9 +154,6 @@ def pareto_flags(frame: pd.DataFrame, utility: str = "f1_macro", cost: str = "fi
 
 def environment_report() -> dict:
     """Entorno de ejecución: el tiempo es contextual, no una medición de energía."""
-    import platform
-    import sklearn
-
     return {
         "python": platform.python_version(),
         "sistema": platform.platform(),

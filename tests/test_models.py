@@ -4,7 +4,12 @@ import pytest
 from sklearn.exceptions import NotFittedError
 
 from inf8239_u01.data import load_breast_cancer
-from inf8239_u01.models import build_baseline, build_svm, build_svm_pipeline, identify_column_types
+from inf8239_u01.models import (
+    build_baseline,
+    build_svm,
+    build_svm_pipeline,
+    identify_column_types,
+)
 
 
 def test_svm_pipeline_predicts_one_label_per_row():

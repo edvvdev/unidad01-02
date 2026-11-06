@@ -20,6 +20,7 @@ dev = [
     "nbformat>=5.10",
     "ipykernel>=6.29",
     "reportlab>=4.2",
+    "ruff>=0.17.4",
 ]
 
 [build-system]

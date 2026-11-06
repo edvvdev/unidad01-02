@@ -12,11 +12,19 @@ from reportlab.lib.enums import TA_JUSTIFY
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
-from reportlab.platypus import Image, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import (
+    Image,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
 
 #: URL del repositorio donde se publica esta entrega (se puede sobrescribir con la variable
 #: de entorno REPO_URL al regenerar el PDF).
-REPO_URL = os.getenv("REPO_URL", "")
+REPO_URL = os.getenv("REPO_URL", "https://github.com/edvvdev/unidad01-01")
 
 ROOT = Path(__file__).resolve().parents[1]   # raíz del proyecto, válida en cualquier clon
 REPORTS = ROOT / "reports"
@@ -49,7 +57,7 @@ story.append(Spacer(1, 6))
 identificacion = [
         ["Estudiante", "Edwing Perez"],
         ["Profesor", "Edwin Ramón José Nolasco"],
-    ["Repositorio", REPO_URL or "PENDIENTE: enlace de GitHub (publicar antes de entregar)"],
+    ["Repositorio", REPO_URL],
     ["Fecha de ejecución", "2026-11-02"],
 ]
 table = Table(identificacion, colWidths=[4.2 * cm, 11.6 * cm])
