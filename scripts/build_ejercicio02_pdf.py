@@ -1,10 +1,15 @@
-"""Genera el PDF breve del Ejercicio 02 (entrega del mandato)."""
+"""Genera el PDF breve del Ejercicio 02 (entrega del mandato).
+
+Todas las cifras salen de `reports/` (misma fuente que el README y la conclusión) y el texto de la
+conclusión se toma del documento que genera `scripts/generar_conclusion.py`, de modo que el PDF no
+pueda contradecir a los artefactos de la corrida.
+"""
 
 from __future__ import annotations
 
-import json
 import os
 import re
+import sys
 from pathlib import Path
 
 from reportlab.lib import colors
@@ -12,27 +17,47 @@ from reportlab.lib.enums import TA_JUSTIFY
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
-from reportlab.platypus import Image, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import (
+    Image,
+    KeepTogether,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
 
-#: URL del repositorio donde se publica esta entrega (se puede sobrescribir con la variable
-#: de entorno REPO_URL al regenerar el PDF).
-REPO_URL = os.getenv("REPO_URL", "")
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 
-ROOT = Path(__file__).resolve().parents[1]   # raíz del proyecto, válida en cualquier clon
+from inf8239_u01 import informe
+
+#: URL del repositorio donde se publica esta entrega. Se puede sobrescribir con la variable de
+#: entorno REPO_URL al regenerar el PDF.
+REPO_URL = os.getenv("REPO_URL", "https://github.com/edvvdev/unidad01-02")
+
 REPORTS = ROOT / "reports"
+DOCS = ROOT / "docs"
 
-resultados = json.loads((REPORTS / "green_ai_decision.json").read_text(encoding="utf-8"))
-import pandas as pd
+cifras = informe.cargar_cifras(REPORTS)
+valores = cifras.valores()
+entorno = valores["entorno"]
 
-tabla = pd.read_csv(REPORTS / "green_ai_results.csv")
-conclusion = (ROOT / "docs/CONCLUSION_EJERCICIO_02.md").read_text(encoding="utf-8")
-cuerpo = conclusion.split("**Qué se comparó.**", 1)[1]
-cuerpo = "**Qué se comparó.**" + cuerpo.split("**Pendiente crítico:**", 1)[0]
+documento_conclusion = (DOCS / "CONCLUSION_EJERCICIO_02.md").read_text(encoding="utf-8")
+cuerpo = documento_conclusion.split(informe.MARCADOR_CUERPO_INICIO, 1)[1]
+cuerpo = cuerpo.split(informe.MARCADOR_CUERPO_FIN, 1)[0]
+referencias = documento_conclusion.split("## Referencias", 1)[1].split("## Figuras", 1)[0]
 
 
-def negritas(texto: str) -> str:
-    """Convierte **negrita** de Markdown en <b>...</b> para reportlab."""
-    return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", texto)
+def markdown(texto: str) -> str:
+    """Convierte el Markdown de la documentación en etiquetas que entienda reportlab."""
+    escapado = texto.replace("&", "&amp;")
+    escapado = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", escapado)
+    escapado = re.sub(r"`(.+?)`", r"<font face='Courier'>\1</font>", escapado)
+    escapado = re.sub(r"\*(.+?)\*", r"<i>\1</i>", escapado)
+    return escapado
+
 
 styles = getSampleStyleSheet()
 styles.add(ParagraphStyle(name="Title2", parent=styles["Title"], fontSize=17, spaceAfter=6))
@@ -48,11 +73,11 @@ story.append(Paragraph(
 story.append(Spacer(1, 6))
 
 identificacion = [
-        ["Estudiante", "Edwing Perez"],
-        ["Profesor", "Edwin Ramón José Nolasco"],
-    ["Repositorio", REPO_URL or "PENDIENTE: enlace de GitHub (publicar antes de entregar)"],
+    ["Estudiante", "Edwing Perez"],
+    ["Profesor", "Edwin Ramón José Nolasco"],
+    ["Repositorio", REPO_URL],
     ["Dataset (Ejercicio 01)", "Adult (Census Income) · UCI · CC BY 4.0"],
-    ["Fecha de ejecución", "2026-11-02"],
+    ["Fecha de ejecución", valores["fecha"]],
 ]
 tabla_id = Table(identificacion, colWidths=[4.6 * cm, 11.2 * cm])
 tabla_id.setStyle(TableStyle([
@@ -73,19 +98,24 @@ story.append(Paragraph(
     "<font face='Courier'>https://archive.ics.uci.edu/static/public/2/adult.zip</font>.<br/>"
     "Target <b>income</b> (<=50K / >50K). Se conservan <b>dataset, target y partición estratificada "
     "80/20 con semilla 42 del Ejercicio 01</b>: mismo preprocesamiento (imputación, estandarización y "
-    "one-hot dentro del pipeline) y mismo conjunto de prueba de 9.769 casos. Exclusiones "
-    "semánticas: <font face='Courier'>fnlwgt, race, sex, native_country</font>.", styles["BodyJ"]))
+    f"one-hot dentro del pipeline) y mismo conjunto de prueba de {informe.formatear(valores['filas_prueba'], 0)} casos. "
+    "Exclusiones semánticas: <font face='Courier'>fnlwgt, race, sex, native_country</font>.", styles["BodyJ"]))
 story.append(Spacer(1, 6))
 
 story.append(Paragraph("2. Tabla principal de resultados", styles["H1s"]))
 filas = [["Configuración", "Familia", "F1 macro", "Accuracy", "Ajuste (s)", "Inferencia (ms)", "Tamaño (KB)", "Pareto"]]
-for _, fila in tabla.sort_values("f1_macro", ascending=False).iterrows():
+for _, fila in cifras.resultados.sort_values("f1_macro", ascending=False).iterrows():
     filas.append([
-        fila["configuracion"], fila["familia"], f"{fila['f1_macro']:.4f}", f"{fila['accuracy']:.4f}",
-        f"{fila['fit_time_median_s']:.1f}", f"{fila['predict_time_median_ms']:.1f}",
-        f"{fila['model_size_kb']:.0f}", "sí" if fila["is_pareto"] else "",
+        fila["configuracion"],
+        informe.DESCRIPCIONES_CORTAS.get(str(fila["configuracion"]), fila["familia"]),
+        informe.formatear(fila["f1_macro"]),
+        informe.formatear(fila["accuracy"]),
+        informe.formatear(fila["fit_time_median_s"], informe.DECIMALES_TIEMPO),
+        informe.formatear(fila["predict_time_median_ms"], informe.DECIMALES_INFERENCIA),
+        informe.formatear(fila["model_size_kb"], informe.DECIMALES_TAMANO),
+        "sí" if fila["is_pareto"] else "",
     ])
-tabla_res = Table(filas, colWidths=[2.6 * cm, 3.0 * cm, 1.7 * cm, 1.7 * cm, 1.7 * cm, 2.2 * cm, 2.0 * cm, 1.3 * cm],
+tabla_res = Table(filas, colWidths=[2.3 * cm, 3.3 * cm, 1.6 * cm, 1.7 * cm, 1.6 * cm, 2.2 * cm, 2.0 * cm, 1.5 * cm],
                    repeatRows=1)
 tabla_res.setStyle(TableStyle([
     ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#94a3b8")),
@@ -101,45 +131,84 @@ tabla_res.setStyle(TableStyle([
 story.append(tabla_res)
 story.append(Spacer(1, 4))
 story.append(Paragraph(
-    f"Tiempos y tamaños: mediana de <b>3 repeticiones</b> de ajuste y de inferencia, y tamaño del "
+    "Tiempos y tamaños: mediana de <b>3 repeticiones</b> de ajuste y de inferencia, y tamaño del "
     f"pipeline serializado. Configuración elegida en la frontera de Pareto: "
-    f"<b>{resultados['configuracion_elegida']}</b> (F1 macro {resultados['f1_macro_elegida']:.4f}). "
-    f"Diferencia absoluta frente a la mejor utilidad: {resultados['diferencia_absoluta_f1']:.4f} de F1 macro; "
-    f"ahorro de tiempo: {resultados['ahorro_tiempo_porcentaje']:.1f} %; "
-    f"diferencia de tamaño: {resultados['diferencia_tamano_kb']:.0f} KB. "
-    f"Entorno: Python {resultados['entorno']['python']}, scikit-learn {resultados['entorno']['scikit_learn']}, "
-    f"{resultados['entorno']['procesador']}, {resultados['entorno']['sistema']}.", styles["Small"]))
+    f"<b>{valores['elegida']}</b> (F1 macro {informe.formatear(valores['f1_elegida'])}). "
+    f"Diferencia absoluta frente a la mejor utilidad: {informe.formatear(valores['diferencia_absoluta_f1'], 2)} de F1 macro; "
+    f"ahorro de tiempo: {informe.formatear(cifras.decision['ahorro_tiempo_porcentaje'], 1)} %; "
+    f"diferencia de tamaño: {informe.formatear(cifras.decision['diferencia_tamano_kb'], 0)} KB. "
+    f"El SVM infiere {informe.formatear(valores['ratio_inferencia_svm'], 0)} veces más lento que el boosting "
+    f"({informe.formatear(valores['inferencia_svm_ms'], 1)} ms frente a "
+    f"{informe.formatear(valores['inferencia_elegida_ms'], 1)} ms) y el recall de "
+    f"<b>&gt;50K</b> va de {informe.formatear(valores['recall_minimo'])} "
+    f"(<font face='Courier'>{valores['configuracion_recall_minimo']}</font>) a "
+    f"{informe.formatear(valores['recall_maximo'])} "
+    f"(<font face='Courier'>{valores['configuracion_recall_maximo']}</font>). "
+    f"Entorno: Python {entorno['python']}, scikit-learn {entorno['scikit_learn']}, "
+    f"{entorno['procesador']}, {entorno['sistema']}.", styles["Small"]))
 story.append(Spacer(1, 8))
 
+story.append(PageBreak())
 story.append(Paragraph("3. Figuras", styles["H1s"]))
-story.append(Paragraph("Figura 1. Frontera de Pareto: F1 macro frente a tiempo de ajuste (mediana de 3 repeticiones).", styles["Small"]))
-story.append(Image(str(REPORTS / "pareto.png"), width=14.5 * cm, height=9.2 * cm))
-story.append(Spacer(1, 4))
-story.append(Paragraph("Figura 2. PCA: espectro de varianza y proyección 2D del conjunto de prueba.", styles["Small"]))
-story.append(Image(str(REPORTS / "pca_analysis.png"), width=14.5 * cm, height=5.6 * cm))
-story.append(Spacer(1, 4))
-story.append(Paragraph("Figura 3. Dos mapas t-SNE sobre 6.000 casos de prueba, con semillas 42 y 7.", styles["Small"]))
-story.append(Image(str(REPORTS / "tsne_two_seeds.png"), width=14.5 * cm, height=6.3 * cm))
-story.append(Spacer(1, 4))
+story.append(KeepTogether([
+    Paragraph(
+        "Figura 1. Frontera de Pareto: F1 macro frente a tiempo de ajuste (mediana de 3 repeticiones) y frente "
+        "al tamaño del modelo (<font face='Courier'>reports/pareto.png</font>).", styles["Small"]),
+    Image(str(REPORTS / "pareto.png"), width=14.5 * cm, height=8.6 * cm),
+]))
+story.append(Spacer(1, 6))
+story.append(KeepTogether([
+    Paragraph(
+        "Figura 2. PCA: espectro de varianza y proyección 2D del conjunto de prueba "
+        f"(<font face='Courier'>reports/pca_analysis.png</font>); hacen falta "
+        f"{valores['componentes_90']} componentes para el 90 % de la varianza y "
+        f"{valores['componentes_95']} para el 95 %.", styles["Small"]),
+    Image(str(REPORTS / "pca_analysis.png"), width=14.5 * cm, height=5.4 * cm),
+]))
+
+story.append(PageBreak())
+story.append(KeepTogether([
+    Paragraph(
+        f"Figura 3. Dos mapas t-SNE sobre {informe.formatear(valores['tsne_casos'], 0)} casos de prueba con "
+        "submuestra <b>uniforme</b> (no estratificada), con semillas 42 y 7 "
+        f"(<font face='Courier'>reports/tsne_two_seeds.png</font>).", styles["Small"]),
+    Image(str(REPORTS / "tsne_two_seeds.png"), width=14.5 * cm, height=6.1 * cm),
+]))
+story.append(Spacer(1, 6))
+story.append(KeepTogether([
+    Paragraph(
+        "Figura 4. Perfil de las diez categorías más frecuentes de <font face='Courier'>occupation</font> y "
+        "proporción de <b>&gt;50K</b> en cada una "
+        "(<font face='Courier'>reports/popular_top10.png</font>).", styles["Small"]),
+    Image(str(REPORTS / "popular_top10.png"), width=14.5 * cm, height=5.4 * cm),
+]))
 
 story.append(PageBreak())
 story.append(Paragraph("4. Conclusión", styles["H1s"]))
 for parrafo in cuerpo.strip().split("\n\n"):
-    texto = negritas(parrafo.strip().replace("\n", " "))
+    texto = markdown(parrafo.strip().replace("\n", " "))
     if texto:
         story.append(Paragraph(texto, styles["BodyJ"]))
         story.append(Spacer(1, 4))
 
+story.append(Spacer(1, 4))
+story.append(Paragraph("5. Referencias", styles["H1s"]))
+for linea in referencias.strip().split("\n"):
+    if linea.strip().startswith("-"):
+        story.append(Paragraph(markdown(linea.strip()[1:].strip()), styles["Small"]))
+        story.append(Spacer(1, 2))
+
 story.append(Spacer(1, 6))
 story.append(Paragraph(
-    "<b>Estado pendiente:</b> la aprobación del docente sobre el dataset sigue sin recibirse (arrastrada "
-    "del Ejercicio 01) y elExercise 02 se ejecutó con esa aprobación pendiente. El tiempo de ajuste y "
-    "el tamaño del modelo son proxies contextuales de costo, <b>no</b> una medición de consumo "
-    "energético: las cifras solo valen en el hardware registrado. El dataset es un censo de 1994–1996 y "
-    "el recall de la clase <b>&gt;50K</b> sigue siendo el punto débil de todas las configuraciones.",
-    styles["Small"]))
+    "<b>Estado pendiente y alcance.</b> La aprobación del docente sobre el dataset sigue pendiente, tal como "
+    "se detalla en el último párrafo de la conclusión. El dataset es un censo de 1994–1996 de la población "
+    "activa estadounidense: los resultados no son extrapolables a la población actual y no autorizan decisiones "
+    "sobre personas. Los tiempos de ajuste y de inferencia y el tamaño de los pipelines son <b>proxies "
+    "contextuales de costo</b> medidos en esta máquina: en otro hardware cambian, y la cifra vigente está "
+    "siempre en <font face='Courier'>reports/green_ai_results.csv</font> y "
+    "<font face='Courier'>reports/green_ai_decision.json</font>.", styles["Small"]))
 
-target = ROOT / "docs/EJERCICIO_02_PDF_BRIEF.pdf"
+target = DOCS / "EJERCICIO_02_PDF_BRIEF.pdf"
 document = SimpleDocTemplate(str(target), pagesize=LETTER, title="Ejercicio 02 · INF-8239",
                               leftMargin=1.5 * cm, rightMargin=1.5 * cm, topMargin=1.5 * cm, bottomMargin=1.5 * cm)
 document.build(story)
