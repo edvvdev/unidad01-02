@@ -1,0 +1,7 @@
+{
+  "tamano_submuestra": 6000,
+  "metodo": "uniforme sin reposici\u00f3n (np.random.default_rng(42).choice)",
+  "semilla": 42,
+  "proporcion_mas_50k_submuestra": 0.23066666666666666,
+  "proporcion_mas_50k_prueba": 0.23932848807452145
+}

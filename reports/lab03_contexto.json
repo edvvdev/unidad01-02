@@ -1,0 +1,13 @@
+{
+  "dataset": "Adult (Census Income)",
+  "filas_totales": 48842,
+  "filas_entrenamiento": 39073,
+  "filas_prueba": 9769,
+  "proporcion_mas_50k_entrenamiento": 0.23927008420136667,
+  "proporcion_mas_50k_prueba": 0.23932848807452145,
+  "capital_gain_cero_porcentaje": 91.73866754023177,
+  "columnas_entrada": 10,
+  "columnas_matriz_densa": 56,
+  "matriz_densa_mb": 16.69378662109375,
+  "seed": 42
+}
