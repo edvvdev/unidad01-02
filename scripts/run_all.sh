@@ -32,17 +32,20 @@ else
   export REPO_URL_E02="${REPO_URL_E02:-https://github.com/edvvdev/unidad01-02}"
 fi
 
-echo "==> 1/5. Dataset (se descarga una vez; el notebook también lo hace solo)"
+echo "==> 1/6. Dataset (se descarga una vez; el notebook también lo hace solo)"
 "${RUN[@]}" - <<'CODE'
 from inf8239_u01.data import download_dataset
 print("adult:", download_dataset("adult", "data/raw"))
 print("bank (candidato alterno):", download_dataset("bank", "data/raw"))
 CODE
 
-echo "==> 2/5. Pruebas (esperado: 21 passed)"
+echo "==> 2/6. Pruebas (esperado: 21 passed)"
 "${RUN[@]}" -m pytest -q
 
-echo "==> 3/5. Notebooks"
+echo "==> 3/6. Lint (esperado: All checks passed!)"
+"${RUN[@]}" -m ruff check .
+
+echo "==> 4/6. Notebooks"
 "${RUN[@]}" -m jupyter nbconvert --to notebook --execute --inplace \
   --ExecutePreprocessor.timeout=3600 notebooks/00_verificacion.ipynb
 "${RUN[@]}" -m jupyter nbconvert --to notebook --execute --inplace \
@@ -57,11 +60,15 @@ else
   echo "    OMITIDO por SKIP_EJ02=1"
 fi
 
-echo "==> 4/5. PDF breves de entrega"
+echo "==> 5/6. Documentación y PDF breves de entrega"
 REPO_URL="$REPO_URL_E01" "${RUN[@]}" python scripts/build_ejercicio01_pdf.py
+REPO_URL="$REPO_URL_E02" "${RUN[@]}" python scripts/generar_conclusion.py
 REPO_URL="$REPO_URL_E02" "${RUN[@]}" python scripts/build_ejercicio02_pdf.py
 
-echo "==> 5/5. Resumen de cifras generadas"
+echo "==> 6/6. Verificación de las cifras publicadas contra reports/"
+"${RUN[@]}" python scripts/verify_cifras.py
+
+echo "==> Resumen de cifras generadas"
 "${RUN[@]}" - <<'CODE'
 import json
 from pathlib import Path
@@ -74,7 +81,7 @@ print(f"LAB01  accuracy={svm['accuracy']:.4f}  f1_macro={svm['f1_macro']:.4f}  r
 print(f"LAB02  accuracy={adult['accuracy']:.4f}  f1_macro={adult['f1_macro']:.4f}  recall_mas_50k={adult['recall_mas_50k']:.4f}")
 print(f"LAB03  elegida={decision['configuracion_elegida']}  f1_macro={decision['f1_macro_elegida']:.4f}  "
       f"tiempo={decision['tiempo_elegida_s']:.2f}s  tamano={decision['tamano_elegida_kb']:.0f}KB")
-print("Revisa que estas cifras coincidan con README, cards, conclusiones y PDF.")
+print("Estas cifras son las que publican README, conclusión, notebook y PDF (verificado en el paso anterior).")
 CODE
 
-echo "Listo. Revisa 'git status' y publica cuando hayas completado los campos PENDIENTE de los PDF."
+echo "Listo. Revisa 'git status' antes de publicar."
